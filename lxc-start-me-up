@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+if [ $# -ne 1 ] || [ "$1" = "--help" ]; then
+  echo "Usage: $0 <image>"
+  echo "Examples:"
+  echo "  o lxc-start-me-up ubuntu-20-04"
+  exit 1
+fi
+
+lxc start "$1"
+until
+  ip4_address=$(lxc list "$1" -c 4 -f csv)
+  [ -n "${ip4_address}" ]
+do
+  sleep 1
+done
+echo "${ip4_address}"
