@@ -7,9 +7,11 @@ if [ $# -ne 1 ] || [ "$1" = "--help" ]; then
   exit 1
 fi
 
-lxc start "$1"
+if [ "$(lxc list -c s -f csv $1)" != "RUNNING" ]; then
+  lxc start "$1"
+fi
 until
-  ip4_address=$(lxc list "$1" -c 4 -f csv)
+  ip4_address=$(lxc list "$1" -c 4 -f csv | cut -f 1 -d ' ')
   [ -n "${ip4_address}" ]
 do
   sleep 1
