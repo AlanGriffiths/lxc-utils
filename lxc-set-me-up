@@ -3,24 +3,32 @@
 if [ $# -lt 2 ] || [ "$1" = "--help" ]; then
   echo "Usage: $0 <image> <name>"
   echo "Examples:"
-  echo "  o lxc-set-me-up ubuntu:20.04      ubuntu-20-04"
-  echo "  o lxc-set-me-up images:debian/sid debian-sid"
-  echo "  o lxc-set-me-up images:fedora/34  fedora-34"
+  echo "  o lxc-set-me-up ubuntu:20.04       ubuntu-20-04"
+  echo "  o lxc-set-me-up images:debian/sid  debian-sid"
+  echo "  o lxc-set-me-up images:fedora/34   fedora-34"
+  echo "  o lxc-set-me-up images:alpine/edge alpine-edge"
   exit 1
 fi
 
 lxc launch "$1" "$2"
 lxc config set "$2" limits.cpu 10
 lxc config set "$2" security.nesting true
-if [ "${1#images:fedora}" = "$1" ]; then
-  lxc exec "$2" -- apt install --assume-yes openssh-server
-  lxc exec "$2" -- adduser --disabled-password --gecos "$USER" "$USER"
-  lxc exec "$2" -- adduser "$USER" sudo
-else
+if [ "${1#images:fedora}" != "$1" ]; then
   lxc exec "$2" -- adduser "$USER"
   lxc exec "$2" -- usermod -aG wheel "$USER"
   lxc exec "$2" -- dnf install openssh-server --assumeyes
   lxc exec "$2" -- systemctl start sshd.service
+elif [ "${1#images:alpine}" != "$1" ]; then
+  lxc exec "$2" -- apk add openssh-server sudo
+  lxc exec "$2" -- adduser -D "$USER"
+  lxc exec "$2" -- adduser "$USER" wheel
+  lxc exec "$2" -- rc-update add sshd
+  lxc exec "$2" -- service sshd start
+  echo "$USER:$USER" | lxc exec "$2" -- chpasswd
+else
+  lxc exec "$2" -- apt install --assume-yes openssh-server
+  lxc exec "$2" -- adduser --disabled-password --gecos "$USER" "$USER"
+  lxc exec "$2" -- adduser "$USER" sudo
 fi
 echo "$USER ALL=(ALL:ALL) NOPASSWD: ALL" | lxc exec "$2" -- tee "/etc/sudoers.d/$USER" > /dev/null
 lxc exec "$2" -- su "$USER" -c "mkdir -p  /home/$USER/.ssh"
