@@ -19,7 +19,7 @@ if [ "${1#images:fedora}" != "$1" ]; then
   lxc exec "$2" -- dnf install openssh-server --assumeyes
   lxc exec "$2" -- systemctl start sshd.service
 elif [ "${1#images:alpine}" != "$1" ]; then
-  lxc exec "$2" -- apk add openssh-server sudo
+  lxc exec "$2" -- apk add openssh-server sudo bash
   lxc exec "$2" -- adduser -D "$USER"
   lxc exec "$2" -- adduser "$USER" wheel
   lxc exec "$2" -- rc-update add sshd
